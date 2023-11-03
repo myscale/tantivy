@@ -10,10 +10,10 @@ use query_grammar::{UserInputAst, UserInputBound, UserInputLeaf, UserInputLitera
 use rustc_hash::FxHashMap;
 
 use super::logical_ast::*;
-use crate::core::json_utils::{
-    convert_to_fast_value_and_get_term, set_string_and_get_terms, JsonTermWriter,
-};
 use crate::core::Index;
+use crate::json_utils::{
+    convert_to_fast_value_and_set, set_string_and_get_terms, split_json_path, term_from_json_paths,
+};
 use crate::query::range_query::{is_type_valid_for_fastfield_range_query, RangeQuery};
 use crate::query::{
     AllQuery, BooleanQuery, BoostQuery, EmptyQuery, FuzzyTermQuery, Occur, PhrasePrefixQuery,
@@ -965,18 +965,19 @@ fn generate_literals_for_json_object(
         })?;
     let index_record_option = text_options.index_option();
     let mut logical_literals = Vec::new();
-    let mut term = Term::with_capacity(100);
-    let mut json_term_writer = JsonTermWriter::from_field_and_json_path(
+
+    let paths = split_json_path(json_path);
+    let mut term = term_from_json_paths(
         field,
-        json_path,
+        paths.iter().map(|el| el.as_str()),
         json_options.is_expand_dots_enabled(),
-        &mut term,
     );
-    if let Some(term) = convert_to_fast_value_and_get_term(&mut json_term_writer, phrase) {
+
+    if let Some(term) = convert_to_fast_value_and_set(&term, phrase) {
         logical_literals.push(LogicalLiteral::Term(term));
     }
-    let terms = set_string_and_get_terms(&mut json_term_writer, phrase, &mut text_analyzer);
-    drop(json_term_writer);
+    let terms = set_string_and_get_terms(&mut term, phrase, &mut text_analyzer);
+
     if terms.len() <= 1 {
         for (_, term) in terms {
             logical_literals.push(LogicalLiteral::Term(term));
