@@ -54,9 +54,7 @@ impl JsonPathWriter {
         let len_path = self.path.len();
         self.indices.push(len_path);
         if !self.path.is_empty() {
-            unsafe {
-                self.path.as_mut_vec().push(JSON_PATH_SEGMENT_SEP);
-            }
+            self.path.push(JSON_PATH_SEGMENT_SEP as char);
         }
         self.path.push_str(segment);
         if self.expand_dots {
