@@ -247,10 +247,17 @@ fn index_json_value<'a, V: Value<'a>>(
 
 /// Tries to infer a JSON type from a string and append it to the term.
 ///
-/// Disclaimer
-/// The term is expected to not contain the type byte nor the value.
-pub(crate) fn convert_to_fast_value_and_append(term: &Term, phrase: &str) -> Option<Term> {
-    let mut term = term.clone();
+/// The term must be json + JSON path.
+pub(crate) fn convert_to_fast_value_and_append(mut term: Term, phrase: &str) -> Option<Term> {
+    assert_eq!(
+        term.value()
+            .as_json_value_bytes()
+            .expect("expecting a Term with a json type and json path")
+            .as_serialized()
+            .len(),
+        0,
+        "JSON value bytes should be empty"
+    );
     if let Ok(dt) = OffsetDateTime::parse(phrase, &Rfc3339) {
         let dt_utc = dt.to_offset(UtcOffset::UTC);
         term.append_type_and_fast_value(DateTime::from_utc(dt_utc));
@@ -273,23 +280,6 @@ pub(crate) fn convert_to_fast_value_and_append(term: &Term, phrase: &str) -> Opt
         return Some(term);
     }
     None
-}
-
-/// helper function to generate a list of terms with their positions from a textual json value
-pub(crate) fn append_string_and_get_terms(
-    term: &mut Term,
-    value: &str,
-    text_analyzer: &mut TextAnalyzer,
-) -> Vec<(usize, Term)> {
-    let mut positions_and_terms = Vec::<(usize, Term)>::new();
-    let term_num_bytes = term.len_bytes();
-    let mut token_stream = text_analyzer.token_stream(value);
-    token_stream.process(&mut |token| {
-        term.truncate_value_bytes(term_num_bytes);
-        term.append_str(&token.text);
-        positions_and_terms.push((token.position, term.clone()));
-    });
-    positions_and_terms
 }
 
 /// Splits a json path supplied to the query parser in such a way that
@@ -374,7 +364,7 @@ mod tests {
         let field = Field::from_field_id(1);
 
         let mut term = term_from_json_paths(field, ["attributes", "color"].into_iter(), false);
-        term.append_str("red");
+        term.append_type_and_str("red");
         assert_eq!(
             format!("{:?}", term),
             "Term(field=1, type=Json, path=attributes.color, type=Str, \"red\")"
@@ -396,7 +386,7 @@ mod tests {
     fn test_string_term() {
         let field = Field::from_field_id(1);
         let mut term = term_from_json_paths(field, ["color"].into_iter(), false);
-        term.append_str("red");
+        term.append_type_and_str("red");
 
         assert_eq!(term.serialized_term(), b"\x00\x00\x00\x01jcolor\x00sred")
     }

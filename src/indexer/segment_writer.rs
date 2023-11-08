@@ -656,7 +656,7 @@ mod tests {
             term
         }
         fn set_str(val: &str, mut term: Term) -> Term {
-            term.append_str(val);
+            term.append_type_and_str(val);
             term
         }
 
@@ -777,7 +777,7 @@ mod tests {
         let segment_reader = searcher.segment_reader(0u32);
         let inv_index = segment_reader.inverted_index(json_field).unwrap();
         let mut term = term_from_json_paths(json_field, ["mykey"].into_iter(), false);
-        term.append_str("token");
+        term.append_type_and_str("token");
         let term_info = inv_index.get_term_info(&term).unwrap().unwrap();
         assert_eq!(
             term_info,
@@ -816,7 +816,7 @@ mod tests {
         let segment_reader = searcher.segment_reader(0u32);
         let inv_index = segment_reader.inverted_index(json_field).unwrap();
         let mut term = term_from_json_paths(json_field, ["mykey"].into_iter(), false);
-        term.append_str("two tokens");
+        term.append_type_and_str("two tokens");
         let term_info = inv_index.get_term_info(&term).unwrap().unwrap();
         assert_eq!(
             term_info,
@@ -859,13 +859,13 @@ mod tests {
         let term = term_from_json_paths(json_field, ["mykey", "field"].into_iter(), false);
 
         let mut hello_term = term.clone();
-        hello_term.append_str("hello");
+        hello_term.append_type_and_str("hello");
 
         let mut nothello_term = term.clone();
-        nothello_term.append_str("nothello");
+        nothello_term.append_type_and_str("nothello");
 
         let mut happy_term = term.clone();
-        happy_term.append_str("happy");
+        happy_term.append_type_and_str("happy");
 
         let phrase_query = PhraseQuery::new(vec![hello_term, happy_term.clone()]);
         assert_eq!(searcher.search(&phrase_query, &Count).unwrap(), 1);

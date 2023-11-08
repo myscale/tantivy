@@ -11,10 +11,7 @@ use rustc_hash::FxHashMap;
 
 use super::logical_ast::*;
 use crate::core::Index;
-use crate::json_utils::{
-    append_string_and_get_terms, convert_to_fast_value_and_append, split_json_path,
-    term_from_json_paths,
-};
+use crate::json_utils::{convert_to_fast_value_and_append, split_json_path, term_from_json_paths};
 use crate::query::range_query::{is_type_valid_for_fastfield_range_query, RangeQuery};
 use crate::query::{
     AllQuery, BooleanQuery, BoostQuery, EmptyQuery, FuzzyTermQuery, Occur, PhrasePrefixQuery,
@@ -968,19 +965,30 @@ fn generate_literals_for_json_object(
     let mut logical_literals = Vec::new();
 
     let paths = split_json_path(json_path);
-    let mut term = term_from_json_paths(
-        field,
-        paths.iter().map(|el| el.as_str()),
-        json_options.is_expand_dots_enabled(),
-    );
+    let get_term_with_path = || {
+        term_from_json_paths(
+            field,
+            paths.iter().map(|el| el.as_str()),
+            json_options.is_expand_dots_enabled(),
+        )
+    };
 
-    if let Some(term) = convert_to_fast_value_and_append(&term, phrase) {
+    // Try to convert the phrase to a fast value
+    if let Some(term) = convert_to_fast_value_and_append(get_term_with_path(), phrase) {
         logical_literals.push(LogicalLiteral::Term(term));
     }
-    let terms = append_string_and_get_terms(&mut term, phrase, &mut text_analyzer);
 
-    if terms.len() <= 1 {
-        for (_, term) in terms {
+    // Try to tokenize the phrase and create Terms.
+    let mut positions_and_terms = Vec::<(usize, Term)>::new();
+    let mut token_stream = text_analyzer.token_stream(phrase);
+    token_stream.process(&mut |token| {
+        let mut term = get_term_with_path();
+        term.append_type_and_str(&token.text);
+        positions_and_terms.push((token.position, term.clone()));
+    });
+
+    if positions_and_terms.len() <= 1 {
+        for (_, term) in positions_and_terms {
             logical_literals.push(LogicalLiteral::Term(term));
         }
         return Ok(logical_literals);
@@ -991,7 +999,7 @@ fn generate_literals_for_json_object(
         ));
     }
     logical_literals.push(LogicalLiteral::Phrase {
-        terms,
+        terms: positions_and_terms,
         slop: 0,
         prefix: false,
     });

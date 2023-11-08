@@ -182,7 +182,7 @@ impl Term {
     /// This is used in JSON type to append a str after the path.
     ///
     /// It will not clear existing bytes.
-    pub(crate) fn append_str(&mut self, val: &str) {
+    pub(crate) fn append_type_and_str(&mut self, val: &str) {
         self.0.push(Type::Str.to_code());
         self.0.extend(val.as_bytes().as_ref());
     }
