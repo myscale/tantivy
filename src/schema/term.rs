@@ -162,6 +162,10 @@ impl Term {
         self.set_bytes(val.to_u64().to_be_bytes().as_ref());
     }
 
+    /// Append a type marker + fast value to a term.
+    /// This is used in JSON type to append a fast value after the path.
+    ///
+    /// It will not clear existing bytes.
     pub(crate) fn append_type_and_fast_value<T: FastValue>(&mut self, val: T) {
         self.0.push(T::to_type().to_code());
         let value = if T::to_type() == Type::Date {
@@ -174,9 +178,11 @@ impl Term {
         self.0.extend(value.to_be_bytes().as_ref());
     }
 
-    /// Appends a string type marker + string to the term.
-    #[cfg(test)]
-    pub fn append_str(&mut self, val: &str) {
+    /// Append a string type marker + string to a term.
+    /// This is used in JSON type to append a str after the path.
+    ///
+    /// It will not clear existing bytes.
+    pub(crate) fn append_str(&mut self, val: &str) {
         self.0.push(Type::Str.to_code());
         self.0.extend(val.as_bytes().as_ref());
     }

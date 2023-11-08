@@ -12,7 +12,8 @@ use rustc_hash::FxHashMap;
 use super::logical_ast::*;
 use crate::core::Index;
 use crate::json_utils::{
-    convert_to_fast_value_and_set, set_string_and_get_terms, split_json_path, term_from_json_paths,
+    append_string_and_get_terms, convert_to_fast_value_and_append, split_json_path,
+    term_from_json_paths,
 };
 use crate::query::range_query::{is_type_valid_for_fastfield_range_query, RangeQuery};
 use crate::query::{
@@ -973,10 +974,10 @@ fn generate_literals_for_json_object(
         json_options.is_expand_dots_enabled(),
     );
 
-    if let Some(term) = convert_to_fast_value_and_set(&term, phrase) {
+    if let Some(term) = convert_to_fast_value_and_append(&term, phrase) {
         logical_literals.push(LogicalLiteral::Term(term));
     }
-    let terms = set_string_and_get_terms(&mut term, phrase, &mut text_analyzer);
+    let terms = append_string_and_get_terms(&mut term, phrase, &mut text_analyzer);
 
     if terms.len() <= 1 {
         for (_, term) in terms {

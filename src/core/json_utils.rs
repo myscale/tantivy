@@ -1,11 +1,9 @@
-use columnar::MonotonicallyMappableToU64;
 use common::JsonPathWriter;
 use rustc_hash::FxHashMap;
 
-use crate::fastfield::FastValue;
 use crate::postings::{IndexingContext, IndexingPosition, PostingsWriter};
 use crate::schema::document::{ReferenceValue, ReferenceValueLeaf, Value};
-use crate::schema::{Field, Type, DATE_TIME_PRECISION_INDEXED};
+use crate::schema::{Field, Type};
 use crate::time::format_description::well_known::Rfc3339;
 use crate::time::{OffsetDateTime, UtcOffset};
 use crate::tokenizer::TextAnalyzer;
@@ -247,8 +245,8 @@ fn index_json_value<'a, V: Value<'a>>(
     }
 }
 
-/// Tries to infer a JSON type from a string.
-pub fn convert_to_fast_value_and_set(term: &Term, phrase: &str) -> Option<Term> {
+/// Tries to infer a JSON type from a string and append it to the term.
+pub(crate) fn convert_to_fast_value_and_append(term: &Term, phrase: &str) -> Option<Term> {
     let mut term = term.clone();
     if let Ok(dt) = OffsetDateTime::parse(phrase, &Rfc3339) {
         let dt_utc = dt.to_offset(UtcOffset::UTC);
@@ -274,31 +272,18 @@ pub fn convert_to_fast_value_and_set(term: &Term, phrase: &str) -> Option<Term> 
     None
 }
 
-pub fn set_json_fastvalue<T: FastValue>(term: &mut Term, val: T) {
-    term.append_bytes(&[T::to_type().to_code()]);
-    let value = if T::to_type() == Type::Date {
-        DateTime::from_u64(val.to_u64())
-            .truncate(DATE_TIME_PRECISION_INDEXED)
-            .to_u64()
-    } else {
-        val.to_u64()
-    };
-    term.append_bytes(value.to_be_bytes().as_slice());
-}
-
 /// helper function to generate a list of terms with their positions from a textual json value
-pub(crate) fn set_string_and_get_terms(
+pub(crate) fn append_string_and_get_terms(
     term: &mut Term,
     value: &str,
     text_analyzer: &mut TextAnalyzer,
 ) -> Vec<(usize, Term)> {
     let mut positions_and_terms = Vec::<(usize, Term)>::new();
-    term.append_bytes(&[Type::Str.to_code()]);
     let term_num_bytes = term.len_bytes();
     let mut token_stream = text_analyzer.token_stream(value);
     token_stream.process(&mut |token| {
         term.truncate_value_bytes(term_num_bytes);
-        term.append_bytes(token.text.as_bytes());
+        term.append_str(&token.text);
         positions_and_terms.push((token.position, term.clone()));
     });
     positions_and_terms
@@ -365,8 +350,8 @@ pub fn term_from_json_paths<'a>(
     expand_dots_enabled: bool,
 ) -> Term {
     let mut json_path = JsonPathWriter::with_expand_dots(expand_dots_enabled);
-    for patho in paths {
-        json_path.push(patho);
+    for path in paths {
+        json_path.push(path);
     }
     json_path.set_end();
     let mut term = Term::with_type_and_field(Type::Json, json_field);
