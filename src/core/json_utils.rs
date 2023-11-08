@@ -246,6 +246,9 @@ fn index_json_value<'a, V: Value<'a>>(
 }
 
 /// Tries to infer a JSON type from a string and append it to the term.
+///
+/// Disclaimer
+/// The term is expected to not contain the type byte nor the value.
 pub(crate) fn convert_to_fast_value_and_append(term: &Term, phrase: &str) -> Option<Term> {
     let mut term = term.clone();
     if let Ok(dt) = OffsetDateTime::parse(phrase, &Rfc3339) {
