@@ -11,7 +11,9 @@ use rustc_hash::FxHashMap;
 
 use super::logical_ast::*;
 use crate::core::Index;
-use crate::json_utils::{convert_to_fast_value_and_append, split_json_path, term_from_json_paths};
+use crate::json_utils::{
+    convert_to_fast_value_and_append_to_json_term, split_json_path, term_from_json_paths,
+};
 use crate::query::range_query::{is_type_valid_for_fastfield_range_query, RangeQuery};
 use crate::query::{
     AllQuery, BooleanQuery, BoostQuery, EmptyQuery, FuzzyTermQuery, Occur, PhrasePrefixQuery,
@@ -974,7 +976,8 @@ fn generate_literals_for_json_object(
     };
 
     // Try to convert the phrase to a fast value
-    if let Some(term) = convert_to_fast_value_and_append(get_term_with_path(), phrase) {
+    if let Some(term) = convert_to_fast_value_and_append_to_json_term(get_term_with_path(), phrase)
+    {
         logical_literals.push(LogicalLiteral::Term(term));
     }
 
