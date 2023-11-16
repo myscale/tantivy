@@ -2,11 +2,11 @@ use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::{fmt, io};
 
-use crate::core::{InvertedIndexReader, Segment, SegmentComponent, SegmentId};
 use crate::directory::{CompositeFile, FileSlice};
 use crate::error::DataCorruption;
 use crate::fastfield::{intersect_alive_bitsets, AliveBitSet, FacetReader, FastFieldReaders};
 use crate::fieldnorm::{FieldNormReader, FieldNormReaders};
+use crate::index::{InvertedIndexReader, Segment, SegmentComponent, SegmentId};
 use crate::schema::{Field, IndexRecordOption, Schema, Type};
 use crate::space_usage::SegmentSpaceUsage;
 use crate::store::StoreReader;
@@ -353,7 +353,7 @@ impl fmt::Debug for SegmentReader {
 
 #[cfg(test)]
 mod test {
-    use crate::core::Index;
+    use crate::index::Index;
     use crate::schema::{Schema, Term, STORED, TEXT};
     use crate::{DocId, IndexWriter};
 
