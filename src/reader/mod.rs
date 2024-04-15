@@ -1,4 +1,6 @@
 mod warming;
+/// Store for multi parts statistics info.
+pub mod multi_parts_statistics;
 
 use std::convert::TryInto;
 use std::sync::atomic::AtomicU64;
