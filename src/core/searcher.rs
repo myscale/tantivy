@@ -5,6 +5,7 @@ use std::{fmt, io};
 use crate::collector::Collector;
 use crate::core::{Executor, SegmentReader};
 use crate::query::{Bm25StatisticsProvider, EnableScoring, Query};
+use crate::reader::multi_parts_statistics::MultiPartsStatistics;
 use crate::schema::{Document, Schema, Term};
 use crate::space_usage::SearcherSpaceUsage;
 use crate::store::{CacheStats, StoreReader};
@@ -66,6 +67,7 @@ impl SearcherGeneration {
 #[derive(Clone)]
 pub struct Searcher {
     inner: Arc<SearcherInner>,
+    multi_parts_statistics: Arc<Option<MultiPartsStatistics>>,
 }
 
 impl Searcher {
@@ -124,14 +126,30 @@ impl Searcher {
 
     /// Return the overall number of documents containing
     /// the given term.
-    pub fn doc_freq(&self, term: &Term) -> crate::Result<u64> {
-        let mut total_doc_freq = 0;
-        for segment_reader in &self.inner.segment_readers {
-            let inverted_index = segment_reader.inverted_index(term.field())?;
-            let doc_freq = inverted_index.doc_freq(term)?;
-            total_doc_freq += u64::from(doc_freq);
+    pub fn doc_freq(&self, term: &Term) -> crate::Result<u64> {    
+        let multi_parts_statistics = self.multi_parts_statistics.as_ref().as_ref();
+        if multi_parts_statistics.is_none() {
+            let mut total_doc_freq = 0;
+            for segment_reader in &self.inner.segment_readers {
+                let inverted_index = segment_reader.inverted_index(term.field())?;
+                let doc_freq = inverted_index.doc_freq(term)?;
+                total_doc_freq += u64::from(doc_freq);
+            }
+            Ok(total_doc_freq)
+        } else {
+            Ok(u64::from(multi_parts_statistics.unwrap().doc_freq(term)))
         }
-        Ok(total_doc_freq)
+    }
+
+    /// Update statistics for multi parts.
+    pub fn update_multi_parts_statistics(&mut self, multi_parts_statistics: MultiPartsStatistics) -> crate::Result<()> {
+        self.multi_parts_statistics = Arc::new(Some(multi_parts_statistics));
+        Ok(())
+    }
+
+    /// Get multi parts statistics.
+    pub fn get_multi_parts_statistics(&self) -> Option<MultiPartsStatistics> {
+        self.multi_parts_statistics.as_ref().clone()
     }
 
     /// Return the overall number of documents containing
@@ -241,7 +259,7 @@ impl Searcher {
 
 impl From<Arc<SearcherInner>> for Searcher {
     fn from(inner: Arc<SearcherInner>) -> Self {
-        Searcher { inner }
+        Searcher { inner, multi_parts_statistics: Arc::new(None) }
     }
 }
 

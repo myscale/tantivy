@@ -158,7 +158,8 @@ pub mod space_usage;
 pub mod store;
 pub mod termdict;
 
-mod reader;
+/// TODO: Try not expose tantivy reader mod entirely
+pub mod reader;
 
 pub use self::reader::{IndexReader, IndexReaderBuilder, ReloadPolicy, Warmer};
 mod snippet;

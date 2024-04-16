@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::fieldnorm::FieldNormReader;
 use crate::query::Explanation;
+use crate::reader::multi_parts_statistics::MultiPartsStatistics;
 use crate::schema::Field;
 use crate::{Score, Searcher, Term};
 
@@ -22,6 +23,9 @@ pub trait Bm25StatisticsProvider {
 
     /// The number of documents containing the given term.
     fn doc_freq(&self, term: &Term) -> crate::Result<u64>;
+
+    /// For multiple parts, we need to manually retrieve BM25-related statistics.
+    fn get_multi_parts_statistics(&self) -> Option<MultiPartsStatistics>;
 }
 
 impl Bm25StatisticsProvider for Searcher {
@@ -36,16 +40,26 @@ impl Bm25StatisticsProvider for Searcher {
     }
 
     fn total_num_docs(&self) -> crate::Result<u64> {
-        let mut total_num_docs = 0u64;
+        let multi_parts_statistics = self.get_multi_parts_statistics();
+        if multi_parts_statistics.is_none(){
+            let mut total_num_docs = 0u64;
 
-        for segment_reader in self.segment_readers() {
-            total_num_docs += u64::from(segment_reader.max_doc());
+            for segment_reader in self.segment_readers() {
+                total_num_docs += u64::from(segment_reader.max_doc());
+            }
+            Ok(total_num_docs)
+        } else {
+            Ok(multi_parts_statistics.unwrap().total_num_docs())
         }
-        Ok(total_num_docs)
     }
 
     fn doc_freq(&self, term: &Term) -> crate::Result<u64> {
         self.doc_freq(term)
+    }
+    
+    // TODO: There are some duplicated logic with self.doc_freq, needs refine.
+    fn get_multi_parts_statistics(&self) -> Option<MultiPartsStatistics> {
+        self.get_multi_parts_statistics()
     }
 }
 
@@ -109,9 +123,19 @@ impl Bm25Weight {
             );
         }
 
-        let total_num_tokens = statistics.total_num_tokens(field)?;
-        let total_num_docs = statistics.total_num_docs()?;
-        let average_fieldnorm = total_num_tokens as Score / total_num_docs as Score;
+        // For one part calculation.
+        let mut total_num_tokens = statistics.total_num_tokens(field)?;
+        let mut total_num_docs = statistics.total_num_docs()?;
+        let mut average_fieldnorm = total_num_tokens as Score / total_num_docs as Score;
+        
+        // For multi parts calculation.
+        let multi_parts_statistics_option = statistics.get_multi_parts_statistics();
+        if multi_parts_statistics_option.is_some() {
+            let multi_parts_statistics = multi_parts_statistics_option.unwrap();
+            total_num_tokens = multi_parts_statistics.total_num_tokens(&field);
+            total_num_docs = multi_parts_statistics.total_num_docs();
+            average_fieldnorm = total_num_tokens as Score / total_num_docs as Score;
+        }
 
         if terms.len() == 1 {
             let term_doc_freq = statistics.doc_freq(&terms[0])?;
