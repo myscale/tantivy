@@ -72,10 +72,10 @@ mod tests {
     fn test_simple_tokenizer() {
         let tokens = token_stream_helper("/home/mochix/.subversion/auth");
         assert_eq!(tokens.len(), 4);
-        assert_token(&tokens[0], 0, "home", 1, 4);
-        assert_token(&tokens[1], 1, "mochix", 6, 11);
-        assert_token(&tokens[2], 2, ".subversion", 13, 23);
-        assert_token(&tokens[3], 3, "auth", 25, 28);
+        assert_token(&tokens[0], 0, "home", 1, 5);
+        assert_token(&tokens[1], 1, "mochix", 6, 12);
+        assert_token(&tokens[2], 2, ".subversion", 13, 24);
+        assert_token(&tokens[3], 3, "auth", 25, 29);
     }
 
     fn token_stream_helper(text: &str) -> Vec<Token> {
