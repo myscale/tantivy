@@ -138,6 +138,7 @@ mod tokenized_string;
 mod tokenizer;
 mod tokenizer_manager;
 mod whitespace_tokenizer;
+mod slash_tokenizer;
 
 pub use tokenizer_api::{BoxTokenStream, Token, TokenFilter, TokenStream, Tokenizer};
 
@@ -150,6 +151,7 @@ pub use self::raw_tokenizer::RawTokenizer;
 pub use self::regex_tokenizer::RegexTokenizer;
 pub use self::remove_long::RemoveLongFilter;
 pub use self::simple_tokenizer::{SimpleTokenStream, SimpleTokenizer};
+pub use self::slash_tokenizer::{SlashTokenStream, SlashTokenizer};
 pub use self::split_compound_words::SplitCompoundWords;
 pub use self::stemmer::{Language, Stemmer};
 pub use self::stop_word_filter::StopWordFilter;
