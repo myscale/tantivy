@@ -912,8 +912,10 @@ fn generate_literals_for_str(
     let mut token_stream = text_analyzer.token_stream(phrase);
     token_stream.process(&mut |token| {
         let term = Term::from_field_text(field, &token.text);
+        // print!("{:?} ", term.value().as_str());
         terms.push((token.position, term));
     });
+    // println!("");
     if terms.len() <= 1 {
         if prefix {
             return Err(QueryParserError::PhrasePrefixRequiresAtLeastTwoTerms {

@@ -116,6 +116,7 @@ pub(crate) trait PostingsWriter: Send + Sync {
         let end_of_path_idx = term_buffer.len_bytes();
         let mut num_tokens = 0;
         let mut end_position = indexing_position.end_position;
+        println!("\n---- begin writing postings list. ----");
         token_stream.process(&mut |token: &Token| {
             // We skip all tokens with a len greater than u16.
             if token.text.len() > MAX_TOKEN_LEN {
@@ -127,6 +128,7 @@ pub(crate) trait PostingsWriter: Send + Sync {
                 );
                 return;
             }
+            print!("{:?} ", token.text);
             term_buffer.truncate_value_bytes(end_of_path_idx);
             term_buffer.append_bytes(token.text.as_bytes());
             let start_position = indexing_position.end_position + token.position as u32;
@@ -134,6 +136,7 @@ pub(crate) trait PostingsWriter: Send + Sync {
             self.subscribe(doc_id, start_position, term_buffer, ctx);
             num_tokens += 1;
         });
+        println!("\n---- finish writing postings list. ----\n");
 
         indexing_position.end_position = end_position + POSITION_GAP;
         indexing_position.num_tokens += num_tokens;
