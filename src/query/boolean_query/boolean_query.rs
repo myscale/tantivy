@@ -160,6 +160,7 @@ impl Query for BooleanQuery {
             subquery.query_terms(visitor);
         }
     }
+
 }
 
 impl BooleanQuery {
@@ -180,18 +181,25 @@ impl BooleanQuery {
         BooleanQuery::new(subqueries)
     }
 
-    /// Helper method to create a boolean query matching a given list of terms.
-    /// The resulting query is a disjunction of the terms.
-    pub fn new_multiterms_query(terms: Vec<Term>) -> BooleanQuery {
+    fn new_multiterms_query_with_occur(terms: Vec<Term>, occur: Occur) -> BooleanQuery {
         let occur_term_queries: Vec<(Occur, Box<dyn Query>)> = terms
             .into_iter()
             .map(|term| {
                 let term_query: Box<dyn Query> =
                     Box::new(TermQuery::new(term, IndexRecordOption::WithFreqs));
-                (Occur::Should, term_query)
+                (occur, term_query)
             })
             .collect();
         BooleanQuery::new(occur_term_queries)
+    }
+    /// Helper method to create a boolean query matching a given list of terms, with OR operation.
+    pub fn new_multiterms_query(terms: Vec<Term>) -> BooleanQuery {
+        Self::new_multiterms_query_with_occur(terms, Occur::Should)
+    }
+
+    /// Helper method to create a boolean query matching a given list of terms, with AND operation.
+    pub fn new_multiterms_and_query(terms: Vec<Term>) -> BooleanQuery {
+        Self::new_multiterms_query_with_occur(terms, Occur::Must)
     }
 
     /// Deconstructed view of the clauses making up this query.
