@@ -19,7 +19,8 @@ use crate::space_usage::StoreSpaceUsage;
 use crate::store::index::Checkpoint;
 use crate::DocId;
 
-pub(crate) const DOCSTORE_CACHE_CAPACITY: usize = 100;
+// pub(crate) const DOCSTORE_CACHE_CAPACITY: usize = 100;
+pub(crate) const DOCSTORE_CACHE_CAPACITY: usize = 1;
 
 type Block = OwnedBytes;
 
