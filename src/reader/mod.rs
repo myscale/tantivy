@@ -240,7 +240,7 @@ impl InnerIndexReader {
             doc_store_cache_num_blocks,
         )?);
 
-        warming_state.warm_new_searcher_generation(&searcher.clone().into())?;
+        // warming_state.warm_new_searcher_generation(&searcher.clone().into())?;
         Ok(searcher)
     }
 
